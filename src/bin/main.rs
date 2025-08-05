@@ -73,9 +73,36 @@ let rel: Vec<(u64, u64)> = vec![
     b: a.clone(),
     rel,
 };
-let cl_trans = relation.get_transitive_closure();
+let cl_trans = relation.transitive_closure();
 println!("r = {:?}",relation.rel);
 println!("cl = {:?}",cl_trans.rel);
 println!("is transitive cl {}",cl_trans.is_transitive());
- 
+let trans_clo  = relation.transitive_closure_warshall();
+println!("warshal clo {:?}",trans_clo.rel);
+
+//RANDOM EXAMPLE TEST
+let set_a:HashSet<u64> = (0..=5).into_iter().collect();
+let set_b:HashSet<u64> = (0..=5).into_iter().collect();
+let rel:Vec<(u64,u64)> = vec![(2, 0), (0, 1), (4, 5), (1, 3), (5, 5), (3, 1), (0, 4), (2, 2)];
+let r = Relation {
+    a: set_a,
+    b: set_b,
+    rel: rel
+};
+println!("r = {}",r.zero_one_matrix());
+//Reflexive Closure
+let cl_ref  = r.reflexive_closure();
+println!("cl_ref  =  {}",cl_ref.zero_one_matrix());
+assert!(cl_ref.is_reflexive());
+//Symmetric Closure
+let cl_sym  = r.symmetric_closure();
+println!("cl_sym  =  {}",cl_sym.zero_one_matrix());
+assert!(cl_sym.is_symmetric());
+let cl = r.transitive_closure();
+let cl_w = r.transitive_closure_warshall();
+assert_eq!(cl,cl_w);
+let m = cl.zero_one_matrix();
+let m_w = cl_w.zero_one_matrix();
+assert_eq!(m,m_w);
+println!("m = {m}\n m_w  = {m_w}");
 }

@@ -1,4 +1,4 @@
-use std::{collections::HashSet, ops::DerefMut};
+use std::{collections::HashSet};
 use nalgebra::DMatrix;
 use itertools::Itertools;
 
@@ -8,7 +8,7 @@ use crate::relation_matrix::RelationMatrix;
 pub struct Relation {
     pub a: HashSet<u64>,
     pub b: HashSet<u64>,
-    pub rel: Vec<(u64,u64)>
+    pub rel: Vec<(u64,u64)>,
 }
 impl Relation {
     pub fn is_reflexive(&self)->bool{
@@ -47,20 +47,20 @@ impl Relation {
 ///
     pub fn is_transitive(&self)->bool{
         assert_eq!(self.a,self.b,"Domain and codomain not coincede!");
-        self.rel.iter().all(|&(a, b)| {
-            self.rel.iter().all(|&(c, d)| 
-                b != c || self.rel.contains(&(a, d))
+        self.rel.iter()
+            .all(|&(a, b)| {
+                self.rel.iter().all(|&(c, d)| 
+                    b != c || self.rel.contains(&(a, d))
+                    )
+                }
             )
-})
     }
     pub fn diagonal(&self)->Self{
         assert_eq!(self.a,self.b);
-        let diag:Vec<(u64,u64)> = 
-                self.a.iter()
-                    .zip(self.b.iter())
-                    .map(|(x,y)| (*x,*y)).collect();
-        Relation { a: self.a.clone(), b: self.b.clone(), rel: diag}
-
+        let id= DMatrix::identity(
+            self.a.len(), 
+            self.a.len());
+        RelationMatrix(id).into_relation()
     }
 /// Checks whether the relation is an **equivalence relation**.
 ///
@@ -124,6 +124,12 @@ impl Relation {
         let rel_mat = DMatrix::from_fn(self.a.len(), self.b.len(), generating_function);
         RelationMatrix(rel_mat)
     }
+    pub fn reflexive_closure(&self)->Self { 
+        (self.zero_one_matrix()|self.diagonal().zero_one_matrix()).into_relation()
+    }
+    pub fn symmetric_closure(&self)->Self { 
+        (self.zero_one_matrix()|self.zero_one_matrix().transpose_relation()).into_relation()
+    }
 ///
 /// Compute the transitive closure of a relation on a set H
 /// 
@@ -142,14 +148,14 @@ impl Relation {
 ///     b: a.clone(),
 ///     rel,
 /// };
-/// let cl_trans = relation.get_transitive_closure();
+/// let cl_trans = relation.transitive_closure();
 /// assert!(cl_trans.is_transitive());
 /// 
 /// 
-    pub fn get_transitive_closure(&self)-> Self {
+    pub fn transitive_closure(&self)-> Self {
     //This is Algorithm 3.3
     let mut x  = self.clone();
-    for i in 2..=self.a.len() {
+    for _ in 2..=self.a.len() {
         for (a,b) in x.rel.clone(){
             for (c,d) in self.rel.clone(){
                 if (b==c) && !x.rel.contains(&(a,d)) {
@@ -161,5 +167,17 @@ impl Relation {
     //println!("r^{i} = {:?}",x.rel);
     }
     x
+}
+pub fn transitive_closure_warshall(&self)-> Self {
+    let mut r = self.zero_one_matrix();
+    for k in 0..r.0.ncols() {
+        let col_k  =r.0.column(k);
+        let row_k = r.0.row(k);
+        let mul = col_k*row_k;
+        let mul_rel = RelationMatrix(mul);
+        r = r|mul_rel;
+    }
+    println!("r is {}", r);
+    r.into_relation()
 }
 }

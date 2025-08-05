@@ -1,7 +1,9 @@
-use std::{fmt::Display, ops::{BitAnd, BitOr, Mul}};
+use std::{collections::HashSet, fmt::Display, ops::{BitAnd, BitOr, Mul}};
 
 use itertools::Itertools;
 use nalgebra::DMatrix;
+
+use crate::relations::Relation;
 #[derive(Debug,Clone,PartialEq, Eq)]
 pub struct RelationMatrix(pub DMatrix<u8>);
 
@@ -74,6 +76,9 @@ impl<'a, 'b> Mul<&'b RelationMatrix> for &'a RelationMatrix {
 }
 
 impl RelationMatrix {
+    pub fn transpose_relation(&self)->Self { 
+        RelationMatrix(self.0.transpose())
+    }
     pub fn fast_pow(&self, mut exp: u64) -> Self {
         let mut base = self.clone();
     let mut result = RelationMatrix(DMatrix::identity(self.0.nrows(), self.0.ncols()));
@@ -85,6 +90,21 @@ impl RelationMatrix {
         exp /= 2;
     }
     result 
+}
+pub fn into_relation(&self)->Relation{
+    let set_a:HashSet<u64> = (0..self.0.ncols() as u64).into_iter().collect();
+    let set_b:HashSet<u64> = (0..self.0.nrows() as u64).into_iter().collect();
+    let mut relation:Vec<(u64,u64)> = 
+    set_a.iter().cartesian_product(set_b.iter())
+        .filter(|(a,b)| 
+            self.0[(**a as usize,**b as usize)]==1
+                ).map(|(a,b)|(*a,*b))
+                .collect();
+    relation.sort();
+    Relation { 
+        a: set_a, 
+        b: set_b, 
+        rel: relation }
 }
 }
 impl Display for RelationMatrix {
